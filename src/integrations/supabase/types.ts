@@ -9,7 +9,157 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      fuel_calculations: {
+        Row: {
+          calculation_date: string | null
+          distance_km: number
+          fuel_consumption: number
+          fuel_price_per_liter: number
+          id: string
+          notes: string | null
+          period_type: string | null
+          total_cost: number
+          total_fuel_needed: number
+          user_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          calculation_date?: string | null
+          distance_km: number
+          fuel_consumption: number
+          fuel_price_per_liter: number
+          id?: string
+          notes?: string | null
+          period_type?: string | null
+          total_cost: number
+          total_fuel_needed: number
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          calculation_date?: string | null
+          distance_km?: number
+          fuel_consumption?: number
+          fuel_price_per_liter?: number
+          id?: string
+          notes?: string | null
+          period_type?: string | null
+          total_cost?: number
+          total_fuel_needed?: number
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_calculations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_calculations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "user_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_fuel_budgets: {
+        Row: {
+          budget_amount: number
+          created_at: string | null
+          id: string
+          month: number
+          user_id: string | null
+          year: number
+        }
+        Insert: {
+          budget_amount: number
+          created_at?: string | null
+          id?: string
+          month: number
+          user_id?: string | null
+          year: number
+        }
+        Update: {
+          budget_amount?: number
+          created_at?: string | null
+          id?: string
+          month?: number
+          user_id?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_fuel_budgets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_vehicles: {
+        Row: {
+          created_at: string | null
+          fuel_consumption: number | null
+          id: string
+          user_id: string | null
+          vehicle_model: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          fuel_consumption?: number | null
+          id?: string
+          user_id?: string | null
+          vehicle_model?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          created_at?: string | null
+          fuel_consumption?: number | null
+          id?: string
+          user_id?: string | null
+          vehicle_model?: string | null
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_vehicles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
