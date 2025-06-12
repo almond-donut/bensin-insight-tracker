@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Fuel, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthModal } from '@/components/auth/AuthModal';
-import { UserMenu } from '@/components/UserMenu';
+import AuthModal from '@/components/auth/AuthModal';
+import UserMenu from '@/components/UserMenu';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Header = () => {
