@@ -2,83 +2,59 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Fuel, TrendingUp, Calendar, Car } from 'lucide-react';
+import { Fuel, TrendingUp, Calendar, Car, Target, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-interface DashboardStats {
-  totalCalculations: number;
-  monthlySpending: number;
-  averageDaily: number;
-  favoriteVehicle: string;
-}
+import { useFuelCalculations } from '@/hooks/useFuelCalculations';
+import { useMonthlyBudget } from '@/hooks/useMonthlyBudget';
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalCalculations: 0,
-    monthlySpending: 0,
-    averageDaily: 0,
-    favoriteVehicle: 'Belum ada'
-  });
-  const [recentCalculations, setRecentCalculations] = useState<any[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const { calculations, loading: calculationsLoading } = useFuelCalculations();
+  const { budget } = useMonthlyBudget();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
       return;
     }
-
-    if (user) {
-      fetchDashboardData();
-    }
   }, [user, loading, navigate]);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch recent calculations
-      const { data: calculations } = await supabase
-        .from('fuel_calculations')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('calculation_date', { ascending: false })
-        .limit(5);
+  // Calculate monthly statistics
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
 
-      // Fetch monthly spending (current month)
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
-      
-      const { data: monthlyData } = await supabase
-        .from('fuel_calculations')
-        .select('total_cost')
-        .eq('user_id', user?.id)
-        .gte('calculation_date', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`)
-        .lt('calculation_date', `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`);
+  const monthlyCalculations = calculations.filter(calc => {
+    const calcDate = new Date(calc.calculation_date);
+    return calcDate.getMonth() === currentMonth && calcDate.getFullYear() === currentYear;
+  });
 
-      const monthlySpending = monthlyData?.reduce((sum, calc) => sum + Number(calc.total_cost), 0) || 0;
-      const averageDaily = monthlySpending / new Date().getDate();
+  const monthlySpending = monthlyCalculations.reduce((sum, calc) => sum + Number(calc.total_cost), 0);
+  const averageDaily = monthlySpending / currentDate.getDate();
 
-      setStats({
-        totalCalculations: calculations?.length || 0,
-        monthlySpending,
-        averageDaily,
-        favoriteVehicle: 'Motor' // Placeholder, bisa diperbaiki dengan query terpisah
-      });
+  // Get recent calculations (last 5)
+  const recentCalculations = calculations.slice(0, 5);
 
-      setRecentCalculations(calculations || []);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoadingData(false);
-    }
-  };
+  // Calculate budget progress
+  const budgetProgress = budget ? (monthlySpending / budget.budget_amount) * 100 : 0;
+  const remainingBudget = budget ? budget.budget_amount - monthlySpending : 0;
 
-  if (loading || loadingData) {
+  // Get most used vehicle type
+  const vehicleUsage = calculations.reduce((acc, calc) => {
+    // Since we don't have vehicle_id linked yet, we'll use a placeholder
+    const vehicleType = 'Motor'; // This should be dynamic when vehicles are linked
+    acc[vehicleType] = (acc[vehicleType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const favoriteVehicle = Object.entries(vehicleUsage).sort(([,a], [,b]) => b - a)[0]?.[0] || 'Belum ada';
+
+  if (loading || calculationsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -111,6 +87,26 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
 
+          {/* Budget Alert */}
+          {budget && budgetProgress > 80 && (
+            <Card className="glass-card border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-yellow-800">
+                      {budgetProgress > 100 ? 'Budget Terlampaui!' : 'Mendekati Batas Budget'}
+                    </p>
+                    <p className="text-sm text-yellow-600">
+                      Anda sudah menggunakan {budgetProgress.toFixed(1)}% dari budget bulan ini
+                      {budgetProgress > 100 && ` dan melebihi sebesar Rp ${Math.abs(remainingBudget).toLocaleString('id-ID')}`}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="glass-card">
@@ -119,7 +115,7 @@ const Dashboard: React.FC = () => {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalCalculations}</div>
+                <div className="text-2xl font-bold">{calculations.length}</div>
                 <p className="text-xs text-muted-foreground">Perhitungan tersimpan</p>
               </CardContent>
             </Card>
@@ -131,9 +127,11 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  Rp {stats.monthlySpending.toLocaleString('id-ID')}
+                  Rp {monthlySpending.toLocaleString('id-ID')}
                 </div>
-                <p className="text-xs text-muted-foreground">Total bulan ini</p>
+                <p className="text-xs text-muted-foreground">
+                  {monthlyCalculations.length} transaksi bulan ini
+                </p>
               </CardContent>
             </Card>
 
@@ -144,7 +142,7 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  Rp {Math.round(stats.averageDaily).toLocaleString('id-ID')}
+                  Rp {Math.round(averageDaily).toLocaleString('id-ID')}
                 </div>
                 <p className="text-xs text-muted-foreground">Per hari bulan ini</p>
               </CardContent>
@@ -152,15 +150,53 @@ const Dashboard: React.FC = () => {
 
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kendaraan Favorit</CardTitle>
-                <Car className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Budget Progress</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.favoriteVehicle}</div>
-                <p className="text-xs text-muted-foreground">Paling sering digunakan</p>
+                <div className="text-2xl font-bold">
+                  {budget ? `${budgetProgress.toFixed(1)}%` : 'Belum diatur'}
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {budget ? 'Dari budget bulanan' : 'Budget belum diatur'}
+                </p>
+                {budget && (
+                  <Progress 
+                    value={Math.min(budgetProgress, 100)} 
+                    className="h-2"
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Budget Card */}
+          {budget && (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle>Budget Bulanan</CardTitle>
+                <CardDescription>
+                  Target: Rp {budget.budget_amount.toLocaleString('id-ID')} • 
+                  Terpakai: Rp {monthlySpending.toLocaleString('id-ID')} • 
+                  Sisa: Rp {remainingBudget.toLocaleString('id-ID')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Progress Budget</span>
+                    <span className={budgetProgress > 100 ? 'text-red-500 font-bold' : ''}>
+                      {budgetProgress.toFixed(1)}%
+                    </span>
+                  </div>
+                  <Progress 
+                    value={Math.min(budgetProgress, 100)} 
+                    className="h-3"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recent Calculations */}
           <Card className="glass-card">
@@ -183,12 +219,21 @@ const Dashboard: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   {recentCalculations.map((calc, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div key={calc.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
                       <div>
                         <p className="font-medium">{calc.distance_km} km</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(calc.calculation_date).toLocaleDateString('id-ID')}
+                          {new Date(calc.calculation_date).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </p>
+                        {calc.notes && (
+                          <p className="text-xs text-muted-foreground">{calc.notes}</p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-primary">
