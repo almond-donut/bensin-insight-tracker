@@ -1,26 +1,78 @@
 
 import { useState, useEffect } from 'react';
-import { Calculator, Car, Bike, Fuel, TrendingUp } from 'lucide-react';
+import { Calculator, Car, Bike, Fuel, TrendingUp, RotateCcw, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import { vehicles, getVehiclesByType, getVehicleById, defaultFuelPrice } from '@/data/vehicles';
+import { useAuth } from '@/contexts/AuthContext';
+import SaveCalculationButton from '@/components/SaveCalculationButton';
 
 const FuelCalculator = () => {
+  const { user } = useAuth();
   const [vehicleType, setVehicleType] = useState<'motor' | 'mobil'>('motor');
   const [selectedVehicle, setSelectedVehicle] = useState<string>('');
   const [customEfficiency, setCustomEfficiency] = useState<string>('');
   const [distance, setDistance] = useState<string>('');
+  const [distanceSlider, setDistanceSlider] = useState<number[]>([25]);
   const [fuelPrice, setFuelPrice] = useState<string>(defaultFuelPrice[vehicleType].toString());
+  const [fuelType, setFuelType] = useState<string>('pertalite');
+  const [useSlider, setUseSlider] = useState(false);
   const [result, setResult] = useState<{
     fuelNeeded: number;
     totalCost: number;
     dailyCost: number;
     monthlyCost: number;
   } | null>(null);
+
+  // Fuel type prices
+  const fuelTypes = {
+    pertalite: { name: 'Pertalite', price: 10000 },
+    pertamax: { name: 'Pertamax', price: 12400 },
+    pertamax_turbo: { name: 'Pertamax Turbo', price: 13400 },
+    solar: { name: 'Solar', price: 6800 },
+    dexlite: { name: 'Dexlite', price: 13700 }
+  };
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('fuelCalculatorData');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setVehicleType(parsed.vehicleType || 'motor');
+        setSelectedVehicle(parsed.selectedVehicle || '');
+        setCustomEfficiency(parsed.customEfficiency || '');
+        setDistance(parsed.distance || '');
+        setDistanceSlider([parsed.distanceSlider || 25]);
+        setFuelPrice(parsed.fuelPrice || defaultFuelPrice[vehicleType].toString());
+        setFuelType(parsed.fuelType || 'pertalite');
+        setUseSlider(parsed.useSlider || false);
+      } catch (e) {
+        console.error('Error loading saved data:', e);
+      }
+    }
+  }, []);
+
+  // Save data to localStorage whenever form data changes
+  useEffect(() => {
+    const dataToSave = {
+      vehicleType,
+      selectedVehicle,
+      customEfficiency,
+      distance,
+      distanceSlider: distanceSlider[0],
+      fuelPrice,
+      fuelType,
+      useSlider
+    };
+    localStorage.setItem('fuelCalculatorData', JSON.stringify(dataToSave));
+  }, [vehicleType, selectedVehicle, customEfficiency, distance, distanceSlider, fuelPrice, fuelType, useSlider]);
 
   const handleVehicleTypeChange = (type: 'motor' | 'mobil') => {
     setVehicleType(type);
@@ -30,8 +82,37 @@ const FuelCalculator = () => {
     setResult(null);
   };
 
+  const handleFuelTypeChange = (type: string) => {
+    setFuelType(type);
+    const price = fuelTypes[type as keyof typeof fuelTypes]?.price || defaultFuelPrice[vehicleType];
+    setFuelPrice(price.toString());
+  };
+
+  const handleDistanceSliderChange = (value: number[]) => {
+    setDistanceSlider(value);
+    setDistance(value[0].toString());
+  };
+
+  const handleDistanceInputChange = (value: string) => {
+    setDistance(value);
+    const numValue = parseFloat(value) || 0;
+    setDistanceSlider([Math.min(Math.max(numValue, 1), 500)]);
+  };
+
+  const resetForm = () => {
+    setSelectedVehicle('');
+    setCustomEfficiency('');
+    setDistance('');
+    setDistanceSlider([25]);
+    setFuelPrice(defaultFuelPrice[vehicleType].toString());
+    setFuelType('pertalite');
+    setResult(null);
+    localStorage.removeItem('fuelCalculatorData');
+  };
+
   const calculateFuelCost = () => {
-    if (!distance || !fuelPrice) return;
+    const currentDistance = useSlider ? distanceSlider[0] : parseFloat(distance);
+    if (!currentDistance || !fuelPrice) return;
 
     let efficiency = 0;
     
@@ -44,13 +125,12 @@ const FuelCalculator = () => {
 
     if (efficiency <= 0) return;
 
-    const distanceNum = parseFloat(distance);
     const fuelPriceNum = parseFloat(fuelPrice);
     
-    const fuelNeeded = distanceNum / efficiency;
+    const fuelNeeded = currentDistance / efficiency;
     const totalCost = fuelNeeded * fuelPriceNum;
-    const dailyCost = totalCost; // untuk sekali jalan
-    const monthlyCost = totalCost * 30; // estimasi 30 hari
+    const dailyCost = totalCost;
+    const monthlyCost = totalCost * 30;
 
     setResult({
       fuelNeeded: fuelNeeded,
@@ -61,10 +141,11 @@ const FuelCalculator = () => {
   };
 
   useEffect(() => {
-    if (distance && fuelPrice && (selectedVehicle || customEfficiency)) {
+    const currentDistance = useSlider ? distanceSlider[0] : parseFloat(distance);
+    if (currentDistance && fuelPrice && (selectedVehicle || customEfficiency)) {
       calculateFuelCost();
     }
-  }, [distance, fuelPrice, selectedVehicle, customEfficiency]);
+  }, [distance, distanceSlider, fuelPrice, selectedVehicle, customEfficiency, useSlider]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -76,6 +157,16 @@ const FuelCalculator = () => {
   };
 
   const filteredVehicles = getVehiclesByType(vehicleType);
+
+  const calculationData = result ? {
+    distance_km: useSlider ? distanceSlider[0] : parseFloat(distance),
+    fuel_price_per_liter: parseFloat(fuelPrice),
+    fuel_consumption: selectedVehicle 
+      ? getVehicleById(selectedVehicle)?.fuelEfficiency || 0 
+      : parseFloat(customEfficiency) || 0,
+    total_fuel_needed: result.fuelNeeded,
+    total_cost: result.totalCost
+  } : null;
 
   return (
     <section id="kalkulator" className="py-20 px-4">
@@ -95,9 +186,20 @@ const FuelCalculator = () => {
             {/* Calculator Form */}
             <Card className="glass-card border-border/50 animate-slide-in">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-2xl">
-                  <Calculator className="h-6 w-6 text-primary" />
-                  <span>Input Data Perjalanan</span>
+                <CardTitle className="flex items-center justify-between text-2xl">
+                  <div className="flex items-center space-x-2">
+                    <Calculator className="h-6 w-6 text-primary" />
+                    <span>Input Data Perjalanan</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetForm}
+                    className="text-xs"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Reset
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -118,6 +220,28 @@ const FuelCalculator = () => {
                   </Tabs>
                 </div>
 
+                {/* Fuel Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Jenis Bahan Bakar</Label>
+                  <Select value={fuelType} onValueChange={handleFuelTypeChange}>
+                    <SelectTrigger className="bg-background/50 border-border/50">
+                      <SelectValue placeholder="Pilih jenis bahan bakar" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover backdrop-blur-xl border-border/50">
+                      {Object.entries(fuelTypes).map(([key, fuel]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{fuel.name}</span>
+                            <Badge variant="secondary" className="ml-2">
+                              {formatCurrency(fuel.price)}/L
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Vehicle Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="vehicle" className="text-base font-medium">
@@ -132,9 +256,9 @@ const FuelCalculator = () => {
                         <SelectItem key={vehicle.id} value={vehicle.id}>
                           <div className="flex justify-between items-center w-full">
                             <span>{vehicle.name}</span>
-                            <span className="text-muted-foreground text-sm ml-4">
+                            <Badge variant="outline" className="ml-2">
                               {vehicle.fuelEfficiency} km/L
-                            </span>
+                            </Badge>
                           </div>
                         </SelectItem>
                       ))}
@@ -160,19 +284,48 @@ const FuelCalculator = () => {
                   />
                 </div>
 
-                {/* Distance */}
-                <div className="space-y-2">
-                  <Label htmlFor="distance" className="text-base font-medium">
-                    Jarak Tempuh (km)
-                  </Label>
-                  <Input
-                    id="distance"
-                    type="number"
-                    placeholder="Contoh: 25"
-                    value={distance}
-                    onChange={(e) => setDistance(e.target.value)}
-                    className="bg-background/50 border-border/50"
-                  />
+                {/* Distance Input */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Jarak Tempuh (km)</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUseSlider(!useSlider)}
+                      className="text-xs"
+                    >
+                      <Palette className="h-3 w-3 mr-1" />
+                      {useSlider ? 'Input Manual' : 'Gunakan Slider'}
+                    </Button>
+                  </div>
+                  
+                  {useSlider ? (
+                    <div className="space-y-3">
+                      <div className="px-3">
+                        <Slider
+                          value={distanceSlider}
+                          onValueChange={handleDistanceSliderChange}
+                          max={500}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="text-center">
+                        <Badge variant="secondary" className="text-lg px-3 py-1">
+                          {distanceSlider[0]} km
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <Input
+                      type="number"
+                      placeholder="Contoh: 25"
+                      value={distance}
+                      onChange={(e) => handleDistanceInputChange(e.target.value)}
+                      className="bg-background/50 border-border/50"
+                    />
+                  )}
                 </div>
 
                 {/* Fuel Price */}
@@ -194,7 +347,7 @@ const FuelCalculator = () => {
                 <Button 
                   onClick={calculateFuelCost}
                   className="w-full btn-primary text-lg py-6"
-                  disabled={!distance || !fuelPrice || (!selectedVehicle && !customEfficiency)}
+                  disabled={!distance && !distanceSlider[0] || !fuelPrice || (!selectedVehicle && !customEfficiency)}
                 >
                   <Calculator className="h-5 w-5 mr-2" />
                   Hitung Biaya BBM
@@ -259,19 +412,26 @@ const FuelCalculator = () => {
                     </CardContent>
                   </Card>
 
-                  {/* CTA for Registration */}
-                  <Card className="glass-card border-primary/30 bg-gradient-to-br from-primary/5 to-emerald-500/5">
-                    <CardContent className="p-6 text-center">
-                      <Fuel className="h-8 w-8 text-primary mx-auto mb-3" />
-                      <h3 className="text-xl font-bold mb-2">Ingin Lacak Pengeluaran Anda?</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Daftar gratis untuk menyimpan riwayat perhitungan dan dapatkan insights pengeluaran BBM Anda.
-                      </p>
-                      <Button className="btn-primary">
-                        Daftar Sekarang - Gratis
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  {/* Save Calculation for logged-in users */}
+                  {user && calculationData && (
+                    <SaveCalculationButton calculationData={calculationData} />
+                  )}
+
+                  {/* CTA for Registration (only for guests) */}
+                  {!user && (
+                    <Card className="glass-card border-primary/30 bg-gradient-to-br from-primary/5 to-emerald-500/5">
+                      <CardContent className="p-6 text-center">
+                        <Fuel className="h-8 w-8 text-primary mx-auto mb-3" />
+                        <h3 className="text-xl font-bold mb-2">Ingin Lacak Pengeluaran Anda?</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Daftar gratis untuk menyimpan riwayat perhitungan dan dapatkan insights pengeluaran BBM Anda.
+                        </p>
+                        <Button className="btn-primary">
+                          Daftar Sekarang - Gratis
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
                 </>
               ) : (
                 <Card className="glass-card border-border/50">

@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFuelCalculations } from '@/hooks/useFuelCalculations';
 import { useMonthlyBudget } from '@/hooks/useMonthlyBudget';
 import FuelCalculator from '@/components/FuelCalculator';
+import FuelPriceWidget from '@/components/FuelPriceWidget';
 
 const LoggedInHomepage: React.FC = () => {
   const { user } = useAuth();
@@ -46,50 +47,58 @@ const LoggedInHomepage: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Bulan Ini</CardTitle>
-              <Fuel className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                Rp {monthlySpending.toLocaleString('id-ID')}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {monthlyCalculations.length} perhitungan
-              </p>
-            </CardContent>
-          </Card>
+        {/* Quick Stats and Fuel Price */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Stats Cards */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Bulan Ini</CardTitle>
+                <Fuel className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">
+                  Rp {monthlySpending.toLocaleString('id-ID')}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {monthlyCalculations.length} perhitungan
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Perhitungan</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">{calculations.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Semua waktu
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Perhitungan</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">{calculations.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Semua waktu
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Budget Status</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {budget ? `${budgetProgress.toFixed(0)}%` : 'Belum diatur'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {budget ? 'Dari target bulanan' : 'Atur budget sekarang'}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Budget Status</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">
+                  {budget ? `${budgetProgress.toFixed(0)}%` : 'Belum diatur'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {budget ? 'Dari target bulanan' : 'Atur budget sekarang'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Fuel Price Widget */}
+          <div className="lg:col-span-1">
+            <FuelPriceWidget />
+          </div>
         </div>
 
         {/* Budget Progress */}
