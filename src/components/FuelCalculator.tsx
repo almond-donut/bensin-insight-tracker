@@ -65,8 +65,8 @@ const FuelCalculator = () => {
   useEffect(() => {
     if (selectedVehicleId && vehicles.length > 0) {
       const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-      if (selectedVehicle?.fuel_consumption) {
-        setFuelConsumption(selectedVehicle.fuel_consumption.toString());
+      if (selectedVehicle?.fuelEfficiency) {
+        setFuelConsumption(selectedVehicle.fuelEfficiency.toString());
       }
     }
   }, [selectedVehicleId, vehicles]);
