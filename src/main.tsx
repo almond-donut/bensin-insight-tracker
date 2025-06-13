@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ThemeProvider defaultTheme="system" storageKey="bensinku-ui-theme">
+        <ThemeProvider defaultTheme="dark" storageKey="bensinku-ui-theme">
           <AuthProvider>
             <App />
             <Toaster />

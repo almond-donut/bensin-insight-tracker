@@ -46,17 +46,61 @@
     --sidebar-border: 225 25% 20%;
     --sidebar-ring: 158 64% 52%;
   }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 158 64% 52%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 158 64% 52%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 158 64% 52%;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-200;
   }
 
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, hsl(225, 25%, 8%) 0%, hsl(225, 30%, 6%) 100%);
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(225, 30%, 6%) 100%);
     min-height: 100vh;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .light body {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(210, 40%, 98%) 100%);
   }
 
   /* Custom scrollbar */
@@ -79,7 +123,7 @@
 
 @layer components {
   .glass-card {
-    @apply backdrop-blur-xl bg-card/50 border border-border/50;
+    @apply backdrop-blur-xl bg-card/50 border border-border/50 transition-all duration-300 hover:bg-card/60 hover:shadow-lg hover:shadow-primary/10;
   }
 
   .gradient-text {
@@ -87,11 +131,104 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-primary-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-primary/25;
+    @apply bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-primary-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-primary/25 hover:scale-105 active:scale-95;
   }
 
   .btn-secondary {
-    @apply glass-card hover:bg-card/70 text-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200;
+    @apply glass-card hover:bg-card/70 text-foreground font-medium px-6 py-3 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+
+  .glass-header {
+    @apply backdrop-blur-xl bg-background/80 transition-all duration-300;
+  }
+
+  /* Microanimations */
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slide-down 0.4s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .input-focus {
+    @apply transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:border-primary focus:scale-105;
+  }
+
+  .button-press {
+    @apply transition-transform duration-150 active:scale-95;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -117,10 +254,39 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.6s ease-out;
 }
 
 .animate-slide-in {
   animation: slide-in 0.6s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }

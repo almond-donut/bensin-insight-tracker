@@ -22,35 +22,35 @@ const Header = () => {
 
   return (
     <>
-      <header className="fixed top-0 w-full z-50 glass-header backdrop-blur-xl border-b border-border/40">
+      <header className="fixed top-0 w-full z-50 glass-header backdrop-blur-xl border-b border-border/40 animate-slide-down">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-br from-primary to-emerald-500 p-2 rounded-xl">
+            <div className="flex items-center space-x-2 animate-slide-in">
+              <div className="bg-gradient-to-br from-primary to-emerald-500 p-2 rounded-xl hover-lift animate-float">
                 <Fuel className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold gradient-text">Bensinku</span>
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden md:flex items-center space-x-8 animate-fade-in">
               <button 
                 onClick={() => scrollToSection('kalkulator')}
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 relative after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 Kalkulator
               </button>
               <button 
                 onClick={() => scrollToSection('fitur')}
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 relative after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
                 Fitur
               </button>
               {user && (
                 <a 
                   href="/dashboard"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-110 relative after:absolute after:w-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
                 >
                   Dashboard
                 </a>
@@ -58,7 +58,7 @@ const Header = () => {
             </nav>
 
             {/* Desktop Auth & Theme */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4 animate-slide-in" style={{ animationDelay: '0.2s' }}>
               <ThemeToggle />
               {user ? (
                 <UserMenu />
@@ -73,18 +73,18 @@ const Header = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="flex items-center space-x-2 md:hidden">
+            <div className="flex items-center space-x-2 md:hidden animate-slide-in">
               <ThemeToggle />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden"
+                className="md:hidden button-press"
               >
                 {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5 transition-transform duration-200 rotate-0" />
                 ) : (
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5 transition-transform duration-200" />
                 )}
               </Button>
             </div>
@@ -92,23 +92,23 @@ const Header = () => {
 
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-border/40 py-4 space-y-4">
+            <div className="md:hidden border-t border-border/40 py-4 space-y-4 animate-slide-down">
               <button 
                 onClick={() => scrollToSection('kalkulator')}
-                className="block w-full text-left text-muted-foreground hover:text-primary transition-colors py-2"
+                className="block w-full text-left text-muted-foreground hover:text-primary transition-colors duration-200 py-2 hover:bg-muted/50 rounded px-2"
               >
                 Kalkulator
               </button>
               <button 
                 onClick={() => scrollToSection('fitur')}
-                className="block w-full text-left text-muted-foreground hover:text-primary transition-colors py-2"
+                className="block w-full text-left text-muted-foreground hover:text-primary transition-colors duration-200 py-2 hover:bg-muted/50 rounded px-2"
               >
                 Fitur
               </button>
               {user && (
                 <a 
                   href="/dashboard"
-                  className="block w-full text-left text-muted-foreground hover:text-primary transition-colors py-2"
+                  className="block w-full text-left text-muted-foreground hover:text-primary transition-colors duration-200 py-2 hover:bg-muted/50 rounded px-2"
                 >
                   Dashboard
                 </a>

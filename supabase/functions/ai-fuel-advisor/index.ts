@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+const openRouterApiKey = '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';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
