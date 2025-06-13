@@ -12,7 +12,6 @@ import { useFuelCalculations } from '@/hooks/useFuelCalculations';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehicleSelector from '@/components/VehicleSelector';
 import AddVehicleModal from '@/components/AddVehicleModal';
-import SaveCalculationButton from '@/components/SaveCalculationButton';
 
 const FuelCalculator = () => {
   const { user } = useAuth();
@@ -263,10 +262,9 @@ const FuelCalculator = () => {
               Reset
             </Button>
             {user && (
-              <SaveCalculationButton 
-                onSave={handleSaveCalculation}
-                className="flex-1"
-              />
+              <Button onClick={handleSaveCalculation} className="flex-1">
+                Simpan Perhitungan
+              </Button>
             )}
           </div>
         </CardContent>

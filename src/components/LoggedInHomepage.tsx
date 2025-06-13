@@ -18,6 +18,7 @@ import { useMonthlyBudget } from '@/hooks/useMonthlyBudget';
 import { useFuelCalculations } from '@/hooks/useFuelCalculations';
 import { useVehicles } from '@/hooks/useVehicles';
 import BudgetPrediction from '@/components/BudgetPrediction';
+import AiFuelAdvisor from '@/components/AiFuelAdvisor';
 
 const LoggedInHomepage = () => {
   const { user } = useAuth();
@@ -169,49 +170,8 @@ const LoggedInHomepage = () => {
         {/* Budget Prediction */}
         <BudgetPrediction />
 
-        {/* Quick Actions */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Aksi Cepat</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={() => scrollToSection('kalkulator')} 
-              className="w-full justify-start"
-              variant="outline"
-            >
-              <Calculator className="mr-2 h-4 w-4" />
-              Hitung BBM
-            </Button>
-            
-            <Button 
-              onClick={() => window.location.href = '/budget'} 
-              className="w-full justify-start"
-              variant="outline"
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              Kelola Budget
-            </Button>
-            
-            <Button 
-              onClick={() => window.location.href = '/vehicles'} 
-              className="w-full justify-start"
-              variant="outline"
-            >
-              <Car className="mr-2 h-4 w-4" />
-              Kelola Kendaraan
-            </Button>
-            
-            <Button 
-              onClick={() => window.location.href = '/dashboard'} 
-              className="w-full justify-start"
-              variant="outline"
-            >
-              <History className="mr-2 h-4 w-4" />
-              Lihat Riwayat
-            </Button>
-          </CardContent>
-        </Card>
+        {/* AI Fuel Advisor */}
+        <AiFuelAdvisor />
       </div>
 
       {/* Recent Calculations */}

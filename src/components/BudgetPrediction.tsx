@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Minus, Crystal } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import { useBudgetPrediction } from '@/hooks/useBudgetPrediction';
 
 const BudgetPrediction: React.FC = () => {
@@ -12,7 +12,7 @@ const BudgetPrediction: React.FC = () => {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Crystal className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" />
             Prediksi Pengeluaran
           </CardTitle>
         </CardHeader>
@@ -32,7 +32,7 @@ const BudgetPrediction: React.FC = () => {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Crystal className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" />
             Prediksi Pengeluaran
           </CardTitle>
         </CardHeader>
@@ -71,7 +71,7 @@ const BudgetPrediction: React.FC = () => {
     <Card className="glass-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Crystal className="h-5 w-5" />
+          <Sparkles className="h-5 w-5" />
           Prediksi Pengeluaran
         </CardTitle>
       </CardHeader>

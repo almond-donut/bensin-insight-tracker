@@ -15,6 +15,7 @@ export interface FuelCalculation {
   calculation_date: string;
   period_type: string;
   notes?: string;
+  vehicle_id?: string;
 }
 
 export const useFuelCalculations = () => {
