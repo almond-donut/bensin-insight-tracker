@@ -6,22 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Calculator, Car, Fuel, DollarSign } from 'lucide-react';
+import { Calculator, Car, Fuel, DollarSign, Truck, Bus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFuelCalculations } from '@/hooks/useFuelCalculations';
 import { useVehicles } from '@/hooks/useVehicles';
+import { vehicles, getVehiclesByType, getBrandsByType, getVehiclesByBrand, getVehicleById } from '@/data/vehicles';
 import VehicleSelector from '@/components/VehicleSelector';
 import AddVehicleModal from '@/components/AddVehicleModal';
 
 const FuelCalculator = () => {
   const { user } = useAuth();
   const { saveCalculation } = useFuelCalculations();
-  const { vehicles, loading: vehiclesLoading } = useVehicles();
+  const { vehicles: userVehicles, loading: vehiclesLoading } = useVehicles();
   
   const [distance, setDistance] = useState([50]);
   const [fuelPrice, setFuelPrice] = useState('10000');
   const [fuelConsumption, setFuelConsumption] = useState('10');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [vehicleType, setVehicleType] = useState<'motor' | 'mobil' | 'truk' | 'bus'>('motor');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedPresetVehicle, setSelectedPresetVehicle] = useState('');
   const [fuelType, setFuelType] = useState('pertalite');
   const [periodType, setPeriodType] = useState('one-time');
   const [notes, setNotes] = useState('');
@@ -68,11 +72,11 @@ const FuelCalculator = () => {
   }, [selectedVehicleId, vehicles]);
 
   const fuelTypes = [
-    { value: 'pertalite', label: 'Pertalite', basePrice: 10000 },
-    { value: 'pertamax', label: 'Pertamax', basePrice: 12400 },
-    { value: 'pertamax_turbo', label: 'Pertamax Turbo', basePrice: 13400 },
-    { value: 'solar', label: 'Solar', basePrice: 6800 },
-    { value: 'dexlite', label: 'Dexlite', basePrice: 13700 }
+    { value: 'pertalite', label: 'Pertalite', basePrice: 10000, applicableFor: ['motor', 'mobil'] },
+    { value: 'pertamax', label: 'Pertamax', basePrice: 12400, applicableFor: ['motor', 'mobil'] },
+    { value: 'pertamax_turbo', label: 'Pertamax Turbo', basePrice: 13400, applicableFor: ['motor', 'mobil'] },
+    { value: 'solar', label: 'Solar', basePrice: 12000, applicableFor: ['truk', 'bus', 'mobil'] },
+    { value: 'dexlite', label: 'Dexlite', basePrice: 13700, applicableFor: ['truk', 'bus'] }
   ];
 
   const periodTypes = [
@@ -82,6 +86,24 @@ const FuelCalculator = () => {
     { value: 'monthly', label: 'Bulanan' }
   ];
 
+  const vehicleTypeOptions = [
+    { value: 'motor', label: 'Motor', icon: Car },
+    { value: 'mobil', label: 'Mobil', icon: Car },
+    { value: 'truk', label: 'Truk', icon: Truck },
+    { value: 'bus', label: 'Bus', icon: Bus }
+  ];
+
+  // Update fuel type when vehicle type changes
+  useEffect(() => {
+    const applicableFuels = fuelTypes.filter(f => f.applicableFor.includes(vehicleType));
+    if (applicableFuels.length > 0) {
+      setFuelType(applicableFuels[0].value);
+      setFuelPrice(applicableFuels[0].basePrice.toString());
+    }
+    setSelectedBrand('');
+    setSelectedPresetVehicle('');
+  }, [vehicleType]);
+
   // Update fuel price when fuel type changes
   useEffect(() => {
     const selectedFuelType = fuelTypes.find(f => f.value === fuelType);
@@ -90,29 +112,68 @@ const FuelCalculator = () => {
     }
   }, [fuelType]);
 
+  // Update fuel consumption when preset vehicle is selected
+  useEffect(() => {
+    if (selectedPresetVehicle) {
+      const vehicle = getVehicleById(selectedPresetVehicle);
+      if (vehicle) {
+        if (vehicle.type === 'motor' || vehicle.type === 'mobil') {
+          // For motor/mobil: km/liter -> convert to L/100km
+          const consumptionPer100km = 100 / vehicle.fuelEfficiency;
+          setFuelConsumption(consumptionPer100km.toFixed(1));
+        } else {
+          // For truk/bus: already in L/100km
+          setFuelConsumption(vehicle.fuelEfficiency.toString());
+        }
+      }
+    }
+  }, [selectedPresetVehicle]);
+
+  // Auto-fill fuel consumption when user vehicle is selected
+  useEffect(() => {
+    if (selectedVehicleId && userVehicles.length > 0) {
+      const selectedVehicle = userVehicles.find(v => v.id === selectedVehicleId);
+      if (selectedVehicle?.fuel_consumption) {
+        setFuelConsumption(selectedVehicle.fuel_consumption.toString());
+      }
+    }
+  }, [selectedVehicleId, userVehicles]);
+
   const calculateResults = () => {
     const distanceKm = distance[0];
     const pricePerLiter = parseFloat(fuelPrice);
     const consumptionPer100km = parseFloat(fuelConsumption);
     
     if (!distanceKm || !pricePerLiter || !consumptionPer100km) {
-      return { fuelNeeded: 0, totalCost: 0, co2Emission: 0 };
+      return { fuelNeeded: 0, totalCost: 0, co2Emission: 0, maxDistance: 0 };
     }
 
     const fuelNeeded = (distanceKm * consumptionPer100km) / 100;
     const totalCost = fuelNeeded * pricePerLiter;
     const co2Emission = fuelNeeded * 2.31; // 1 liter = 2.31 kg CO2
+    
+    // Calculate max distance with selected vehicle's tank
+    let maxDistance = 0;
+    if (selectedPresetVehicle) {
+      const vehicle = getVehicleById(selectedPresetVehicle);
+      if (vehicle) {
+        maxDistance = vehicle.maxDistance;
+      }
+    }
 
-    return { fuelNeeded, totalCost, co2Emission };
+    return { fuelNeeded, totalCost, co2Emission, maxDistance };
   };
 
-  const { fuelNeeded, totalCost, co2Emission } = calculateResults();
+  const { fuelNeeded, totalCost, co2Emission, maxDistance } = calculateResults();
 
   const handleReset = () => {
     setDistance([50]);
     setFuelPrice('10000');
     setFuelConsumption('10');
     setSelectedVehicleId(null);
+    setVehicleType('motor');
+    setSelectedBrand('');
+    setSelectedPresetVehicle('');
     setFuelType('pertalite');
     setPeriodType('one-time');
     setNotes('');
@@ -138,9 +199,13 @@ const FuelCalculator = () => {
     }
   };
 
+  const availableBrands = getBrandsByType(vehicleType);
+  const availableVehicles = selectedBrand ? getVehiclesByBrand(vehicleType, selectedBrand) : [];
+  const applicableFuelTypes = fuelTypes.filter(f => f.applicableFor.includes(vehicleType));
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <Card className="glass-card">
+      <Card className="glass-card animate-slide-up">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
@@ -148,11 +213,77 @@ const FuelCalculator = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Vehicle Selection */}
-          <div className="space-y-2">
+          {/* Vehicle Type Selection */}
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <Label className="text-sm font-medium">Jenis Kendaraan</Label>
+            <Select value={vehicleType} onValueChange={(value: 'motor' | 'mobil' | 'truk' | 'bus') => setVehicleType(value)}>
+              <SelectTrigger className="input-focus">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicleTypeOptions.map((type) => {
+                  const IconComponent = type.icon;
+                  return (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="h-4 w-4" />
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Preset Vehicle Selection */}
+          <div className="space-y-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <Label className="text-sm font-medium">Pilih Kendaraan Preset (Opsional)</Label>
+            
+            {/* Brand Selection */}
+            <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+              <SelectTrigger className="input-focus">
+                <SelectValue placeholder="Pilih Merek" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableBrands.map((brand) => (
+                  <SelectItem key={brand} value={brand}>
+                    {brand}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Model Selection */}
+            {selectedBrand && (
+              <Select value={selectedPresetVehicle} onValueChange={setSelectedPresetVehicle}>
+                <SelectTrigger className="input-focus">
+                  <SelectValue placeholder="Pilih Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{vehicle.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {vehicle.year} • {vehicle.engine_cc}cc • 
+                          {vehicle.type === 'motor' || vehicle.type === 'mobil' 
+                            ? ` ${vehicle.fuelEfficiency} km/L` 
+                            : ` ${vehicle.fuelEfficiency} L/100km`}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* User Vehicle Selection */}
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <VehicleSelector
-                vehicles={vehicles}
+                vehicles={userVehicles}
                 selectedVehicleId={selectedVehicleId}
                 onVehicleChange={setSelectedVehicleId}
                 loading={vehiclesLoading}
@@ -162,14 +293,14 @@ const FuelCalculator = () => {
           </div>
 
           {/* Fuel Type Selection */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.4s' }}>
             <Label className="text-sm font-medium">Jenis Bahan Bakar</Label>
             <Select value={fuelType} onValueChange={setFuelType}>
-              <SelectTrigger>
+              <SelectTrigger className="input-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {fuelTypes.map((fuel) => (
+                {applicableFuelTypes.map((fuel) => (
                   <SelectItem key={fuel.value} value={fuel.value}>
                     <div className="flex items-center justify-between w-full">
                       <span>{fuel.label}</span>
@@ -184,22 +315,22 @@ const FuelCalculator = () => {
           </div>
 
           {/* Distance Slider */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.5s' }}>
             <Label className="text-sm font-medium">
               Jarak Tempuh: {distance[0]} km
             </Label>
             <Slider
               value={distance}
               onValueChange={setDistance}
-              max={500}
+              max={vehicleType === 'truk' || vehicleType === 'bus' ? 1000 : 500}
               min={1}
               step={1}
-              className="w-full"
+              className="w-full slider-animate"
             />
           </div>
 
           {/* Fuel Price */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.6s' }}>
             <Label htmlFor="fuelPrice" className="text-sm font-medium">
               Harga BBM per Liter (Rp)
             </Label>
@@ -209,11 +340,12 @@ const FuelCalculator = () => {
               value={fuelPrice}
               onChange={(e) => setFuelPrice(e.target.value)}
               placeholder="10000"
+              className="input-focus"
             />
           </div>
 
           {/* Fuel Consumption */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.7s' }}>
             <Label htmlFor="fuelConsumption" className="text-sm font-medium">
               Konsumsi BBM (L/100km)
             </Label>
@@ -224,14 +356,15 @@ const FuelCalculator = () => {
               value={fuelConsumption}
               onChange={(e) => setFuelConsumption(e.target.value)}
               placeholder="10"
+              className="input-focus"
             />
           </div>
 
           {/* Period Type */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.8s' }}>
             <Label className="text-sm font-medium">Periode</Label>
             <Select value={periodType} onValueChange={setPeriodType}>
-              <SelectTrigger>
+              <SelectTrigger className="input-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -245,7 +378,7 @@ const FuelCalculator = () => {
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
+          <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.9s' }}>
             <Label htmlFor="notes" className="text-sm font-medium">
               Catatan (Opsional)
             </Label>
@@ -254,15 +387,16 @@ const FuelCalculator = () => {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="contoh: perjalanan ke kantor"
+              className="input-focus"
             />
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleReset} variant="outline" className="flex-1">
+          <div className="flex gap-2 animate-slide-up" style={{ animationDelay: '1s' }}>
+            <Button onClick={handleReset} variant="outline" className="flex-1 button-press">
               Reset
             </Button>
             {user && (
-              <Button onClick={handleSaveCalculation} className="flex-1">
+              <Button onClick={handleSaveCalculation} className="flex-1 button-press hover-lift">
                 Simpan Perhitungan
               </Button>
             )}
@@ -272,7 +406,7 @@ const FuelCalculator = () => {
 
       <div className="space-y-6">
         {/* Results Card */}
-        <Card className="glass-card">
+        <Card className="glass-card animate-slide-up hover-lift" style={{ animationDelay: '0.2s' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
@@ -281,7 +415,7 @@ const FuelCalculator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover-lift transition-all duration-200">
                 <div className="flex items-center gap-2">
                   <Fuel className="h-4 w-4 text-blue-500" />
                   <span className="text-sm">BBM Dibutuhkan</span>
@@ -289,7 +423,7 @@ const FuelCalculator = () => {
                 <span className="font-semibold">{fuelNeeded.toFixed(2)} L</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover-lift transition-all duration-200">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-500" />
                   <span className="text-sm">Total Biaya</span>
@@ -299,27 +433,43 @@ const FuelCalculator = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover-lift transition-all duration-200">
                 <div className="flex items-center gap-2">
                   <Car className="h-4 w-4 text-orange-500" />
                   <span className="text-sm">Emisi CO₂</span>
                 </div>
                 <span className="font-semibold">{co2Emission.toFixed(2)} kg</span>
               </div>
+
+              {maxDistance > 0 && (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover-lift transition-all duration-200">
+                  <div className="flex items-center gap-2">
+                    <Car className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm">Jarak Maks Tangki Penuh</span>
+                  </div>
+                  <span className="font-semibold">{maxDistance} km</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Environmental Impact */}
-        <Card className="glass-card">
+        <Card className="glass-card animate-slide-up hover-lift" style={{ animationDelay: '0.4s' }}>
           <CardHeader>
             <CardTitle className="text-base">💡 Tips Hemat BBM</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>• Gunakan kendaraan umum untuk menghemat hingga 70%</p>
-            <p>• Periksa tekanan ban secara rutin</p>
-            <p>• Hindari akselerasi mendadak</p>
-            <p>• Matikan AC saat di jalan macet</p>
+            <p className="hover-lift transition-all duration-200">• Gunakan kendaraan umum untuk menghemat hingga 70%</p>
+            <p className="hover-lift transition-all duration-200">• Periksa tekanan ban secara rutin</p>
+            <p className="hover-lift transition-all duration-200">• Hindari akselerasi mendadak</p>
+            <p className="hover-lift transition-all duration-200">• Matikan AC saat di jalan macet</p>
+            {(vehicleType === 'truk' || vehicleType === 'bus') && (
+              <>
+                <p className="hover-lift transition-all duration-200">• Lakukan perawatan mesin secara berkala</p>
+                <p className="hover-lift transition-all duration-200">• Gunakan rute yang optimal</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
